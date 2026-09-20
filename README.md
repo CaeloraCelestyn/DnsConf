@@ -186,7 +186,7 @@ All profiles get _similar_ settings. That means `BLOCK`, `REDIRECT` and `EXCLUDE
 
 ### Multiple profiles of single provider
 
-Put your profiles separated by coma **without whitespace** into related **environment variables**.
+Put your profiles separated by coma into related **environment variables**.
 E.g., two NextDNS profiles must be set as shown:
 
 - `AUTH_SECRET` has: `secret_NextDns_1,secret_NextDns_2`
