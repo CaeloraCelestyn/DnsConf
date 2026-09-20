@@ -17,9 +17,12 @@ import org.xbill.DNS.Type;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.isNull;
 
@@ -36,7 +39,7 @@ public class DonorDnsUtils {
     }
 
     private static void replaceIp(BypassRoute bypassRoute, Resolver dnsResolver) {
-        List<String> donorIps = fetchDonorIps(bypassRoute.website(), dnsResolver);
+        SequencedSet<String> donorIps = fetchDonorIps(bypassRoute.website(), dnsResolver);
         String newIp = chooseIp(bypassRoute.ip(), donorIps);
         if (!bypassRoute.ip().equals(newIp)) {
             Log.common("Changed IP for %s: %s -> %s".formatted(bypassRoute.website(), bypassRoute.ip(), newIp));
@@ -45,7 +48,7 @@ public class DonorDnsUtils {
     }
 
     // Donor may return several IPs in random order, so keep current IP if it is still among them
-    static String chooseIp(String currentIp, List<String> donorIps) {
+    static String chooseIp(String currentIp, SequencedSet<String> donorIps) {
         if (donorIps.isEmpty() || donorIps.contains(currentIp)) {
             return currentIp;
         }
@@ -67,21 +70,21 @@ public class DonorDnsUtils {
         }
     }
 
-    private static List<String> fetchDonorIps(String domain, Resolver resolver) {
+    private static SequencedSet<String> fetchDonorIps(String domain, Resolver resolver) {
         try {
             Lookup lookup = new Lookup(domain, Type.A);
             lookup.setResolver(resolver);
             Record[] records = lookup.run();
             if (isNull(records)) {
-                return List.of();
+                return new LinkedHashSet<>();
             }
             return Arrays.stream(records)
                     .filter(ARecord.class::isInstance)
                     .map(record -> ((ARecord) record).getAddress().getHostAddress())
-                    .toList();
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
         } catch (TextParseException e) {
             Log.fail("Invalid domain address: " + domain);
-            return List.of();
+            return new LinkedHashSet<>();
         }
     }
 
